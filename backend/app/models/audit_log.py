@@ -1,6 +1,7 @@
-from sqlalchemy import Column, Integer, String, DateTime, JSON
+from sqlalchemy import Column, Integer, String, DateTime
 from datetime import datetime
-from backend.app.database import Base
+from app.database import Base
+
 
 class AuditLog(Base):
 
@@ -10,8 +11,10 @@ class AuditLog(Base):
 
     action = Column(String)
 
-    user_id = Column(String)
+    entity = Column(String)
 
-    details = Column(JSON)
+    entity_id = Column(Integer)
+
+    performed_by = Column(String)
 
     timestamp = Column(DateTime, default=datetime.utcnow)

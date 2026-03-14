@@ -14,10 +14,10 @@ SessionLocal = sessionmaker(
 Base = declarative_base()
 
 # Register models
-import backend.app.models.pilot
-import backend.app.models.flight
-import backend.app.models.duty_period
-import backend.app.models.rest_period
-import backend.app.models.pilot_flight
-import backend.app.models.violation
-import backend.app.models.audit_log
+import app.models.pilot
+import app.models.flight
+import app.models.duty_period
+import app.models.rest_period
+import app.models.pilot_flight
+import app.models.violation
+import app.models.audit_log

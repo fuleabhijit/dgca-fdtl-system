@@ -1,6 +1,5 @@
 from sqlalchemy.orm import Session
-from backend.app.models.violation import Violation
-
+from app.models.violation import Violation
 
 def create_violation(
     db: Session,

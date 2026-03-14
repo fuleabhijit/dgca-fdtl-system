@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, ForeignKey
-from backend.app.database import Base
+from app.database import Base
 
 class PilotFlight(Base):
 

@@ -1,11 +1,11 @@
 from sqlalchemy import Column, Integer, DateTime, ForeignKey
-from backend.app.database import Base
+from app.database import Base
 
 class RestPeriod(Base):
 
     __tablename__ = "rest_periods"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True)
 
     pilot_id = Column(Integer, ForeignKey("pilots.id"))
 

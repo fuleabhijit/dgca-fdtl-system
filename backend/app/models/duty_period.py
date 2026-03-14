@@ -1,6 +1,6 @@
-from sqlalchemy import Column, Integer, DateTime, ForeignKey, String
+from sqlalchemy import Column, Integer, DateTime, ForeignKey
 from datetime import datetime
-from backend.app.database import Base
+from app.database import Base
 
 class DutyPeriod(Base):
 
@@ -13,7 +13,5 @@ class DutyPeriod(Base):
     duty_start = Column(DateTime)
 
     duty_end = Column(DateTime)
-
-    duty_type = Column(String)
 
     created_at = Column(DateTime, default=datetime.utcnow)
