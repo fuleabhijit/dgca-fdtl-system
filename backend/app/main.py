@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from app.database import engine, Base
-
+from app.api import violation_routes
 import app.models.pilot
 import app.models.flight
 import app.models.duty_period
@@ -17,6 +17,8 @@ app = FastAPI()
 
 app.include_router(pilot_routes.router)
 app.include_router(duty_routes.router)
+app.include_router(violation_routes.router)
+
 
 @app.get("/")
 def root():

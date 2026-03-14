@@ -1,7 +1,7 @@
 from datetime import datetime
 
-from backend.app.database import SessionLocal
-from backend.app.services.rule_engine import check_duty_period
+from app.database import SessionLocal
+from app.services.rule_engine import check_duty_period
 
 
 db = SessionLocal()

@@ -17,6 +17,7 @@ def get_db():
         db.close()
 
 
+# CREATE DUTY RECORD
 @router.post("/")
 def create_duty(
     pilot_id: int,
@@ -33,7 +34,23 @@ def create_duty(
 
     db.add(duty)
     db.commit()
+    db.refresh(duty)
 
-    check_duty_period(db, pilot_id, duty_start, duty_end)
+    # Run rule engine
+    check_duty_period(
+        db,
+        pilot_id=pilot_id,
+        duty_start=duty_start,
+        duty_end=duty_end
+    )
 
     return duty
+
+
+# GET ALL DUTY RECORDS
+@router.get("/")
+def get_duty_records(db: Session = Depends(get_db)):
+
+    duties = db.query(DutyPeriod).all()
+
+    return duties
