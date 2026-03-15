@@ -5,7 +5,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime, date, time
 
-API_URL = "http://127.0.0.1:8000"
+API_URL = "https://dgca-fdtl-system-1.onrender.com"
 
 st.set_page_config(
     page_title="FDTL Compliance Monitor",
