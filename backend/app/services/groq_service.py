@@ -1,11 +1,18 @@
+import os
 import requests
+from dotenv import load_dotenv
 
-GROQ_API_KEY = "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"
+load_dotenv()
+
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 GROQ_URL     = "https://api.groq.com/openai/v1/chat/completions"
-GROQ_MODEL   = "llama-3.3-70b-versatile"   # current active model as of 2026
+GROQ_MODEL   = "llama-3.3-70b-versatile"
 
 
 def explain_violation(violation_type: str, description: str, pilot_name: str = "the pilot") -> str:
+
+    if not GROQ_API_KEY:
+        return "AI explanation unavailable — GROQ_API_KEY not configured."
 
     prompt = f"""
 You are a DGCA aviation compliance officer. A flight duty time violation has been detected.

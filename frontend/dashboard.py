@@ -1,11 +1,9 @@
 import streamlit as st
 import requests
 import pandas as pd
-import plotly.express as px
-import plotly.graph_objects as go
 from datetime import datetime, date, time
 
-API_URL = "http://127.0.0.1:8000"
+API_URL = "https://dgca-fdtl-system-1.onrender.com"
 
 st.set_page_config(
     page_title="FDTL Compliance Monitor",
@@ -15,9 +13,8 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@500;600&display=swap');
 
-*, *::before, *::after { box-sizing: border-box; }
 html, body, [class*="css"], .stApp {
     background-color: #0a0a0a !important;
     font-family: 'DM Mono', monospace !important;
@@ -29,7 +26,6 @@ html, body, [class*="css"], .stApp {
 .stTabs [data-baseweb="tab-list"] {
     background: #0a0a0a !important;
     border-bottom: 0.5px solid #1e1e1e !important;
-    gap: 0 !important;
     padding: 0 32px !important;
 }
 .stTabs [data-baseweb="tab"] {
@@ -52,7 +48,6 @@ html, body, [class*="css"], .stApp {
     padding: 28px 32px !important;
     background: #0a0a0a !important;
 }
-
 [data-testid="metric-container"] {
     background: #0f0f0f !important;
     border: 0.5px solid #1e1e1e !important;
@@ -71,14 +66,11 @@ html, body, [class*="css"], .stApp {
     font-size: 32px !important;
     font-weight: 500 !important;
     color: #f0efe8 !important;
-    letter-spacing: -0.02em !important;
 }
-
 [data-testid="stDataFrame"] {
     border: 0.5px solid #1a1a1a !important;
     border-radius: 0 !important;
 }
-
 [data-testid="stSelectbox"] label,
 [data-testid="stNumberInput"] label,
 [data-testid="stDateInput"] label,
@@ -102,8 +94,6 @@ html, body, [class*="css"], .stApp {
     font-family: 'DM Mono', monospace !important;
     font-size: 11px !important;
 }
-[data-testid="stSelectbox"] svg { fill: #444 !important; }
-
 .stButton > button {
     background: #f0efe8 !important;
     color: #0a0a0a !important;
@@ -117,7 +107,6 @@ html, body, [class*="css"], .stApp {
     width: 100% !important;
 }
 .stButton > button:hover { opacity: 0.85 !important; }
-
 [data-testid="stAlert"] {
     border-radius: 0 !important;
     background: #0f0f0f !important;
@@ -127,7 +116,6 @@ html, body, [class*="css"], .stApp {
     font-family: 'DM Mono', monospace !important;
     color: #888 !important;
 }
-
 .sec {
     font-size: 9px;
     letter-spacing: 0.18em;
@@ -136,12 +124,6 @@ html, body, [class*="css"], .stApp {
     margin-bottom: 14px;
     padding-bottom: 10px;
     border-bottom: 0.5px solid #1a1a1a;
-    font-family: 'DM Mono', monospace;
-}
-hr {
-    border: none !important;
-    border-top: 0.5px solid #1a1a1a !important;
-    margin: 24px 0 !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -150,7 +132,7 @@ hr {
 # ── HELPERS ───────────────────────────────────────────────────────────────────
 def safe_get(endpoint, params=None):
     try:
-        r = requests.get(f"{API_URL}{endpoint}", params=params, timeout=5)
+        r = requests.get(f"{API_URL}{endpoint}", params=params, timeout=10)
         if r.status_code == 200 and r.text.strip():
             return r.json()
         return []
@@ -160,19 +142,12 @@ def safe_get(endpoint, params=None):
 
 def safe_post(endpoint, params):
     try:
-        r = requests.post(f"{API_URL}{endpoint}", params=params, timeout=5)
+        r = requests.post(f"{API_URL}{endpoint}", params=params, timeout=10)
         if r.status_code == 200 and r.text.strip():
             return r.json(), None
-        return None, f"Error {r.status_code}: {r.text}"
+        return None, r.json().get("detail", r.text) if r.text else f"Error {r.status_code}"
     except Exception as e:
         return None, str(e)
-
-
-PL = dict(
-    paper_bgcolor="#0a0a0a", plot_bgcolor="#0a0a0a",
-    font=dict(family="DM Mono", color="#f0efe8", size=10),
-    margin=dict(l=0, r=0, t=8, b=0),
-)
 
 
 # ── TOPBAR ────────────────────────────────────────────────────────────────────
@@ -197,19 +172,19 @@ st.markdown("""
                      display:inline-block;"></span>
         <span style="font-size:9px;color:#444;letter-spacing:0.1em;
                      text-transform:uppercase;font-family:'DM Mono',monospace;">
-            System Operational</span>
+            Live</span>
     </div>
 </div>
 """, unsafe_allow_html=True)
 
 
-# ── DATA ──────────────────────────────────────────────────────────────────────
+# ── FETCH DATA ────────────────────────────────────────────────────────────────
 pilots     = safe_get("/pilots")
 duties     = safe_get("/duty")
 violations = safe_get("/violations")
+pilot_map  = {p["id"]: p["name"] for p in pilots}
 high_v     = sum(1 for v in violations if v.get("severity") == "HIGH")
 medium_v   = sum(1 for v in violations if v.get("severity") == "MEDIUM")
-pilot_map  = {p["id"]: p["name"] for p in pilots}
 
 
 # ── METRICS ───────────────────────────────────────────────────────────────────
@@ -224,8 +199,8 @@ st.markdown("</div>", unsafe_allow_html=True)
 
 
 # ── TABS ──────────────────────────────────────────────────────────────────────
-tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
-    "Overview", "Pilots", "Duty Records", "Violations", "AI Analysis", "Add Record"
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
+    "Overview", "Duty Records", "Violations", "AI Analysis", "Add Record"
 ])
 
 
@@ -233,66 +208,31 @@ tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
 # TAB 1 — OVERVIEW
 # ════════════════════════════════════════════════════════════════════
 with tab1:
-    col_l, col_r = st.columns([3, 2], gap="large")
+    st.markdown('<div class="sec">Recent Violations</div>', unsafe_allow_html=True)
 
-    with col_l:
-        st.markdown('<div class="sec">Duty Hours — All Pilots</div>', unsafe_allow_html=True)
-        if duties:
-            df_d = pd.DataFrame(duties)
-            if "duration_hours" not in df_d.columns:
-                df_d["duration_hours"] = 0.0
-            df_d["pilot_name"]     = df_d["pilot_id"].map(pilot_map).fillna("Unknown")
-            df_d["duration_hours"] = pd.to_numeric(df_d["duration_hours"], errors="coerce").fillna(0)
-            fig = go.Figure()
-            for _, row in df_d.iterrows():
-                over = row["duration_hours"] > 13
-                fig.add_trace(go.Bar(
-                    x=[row["pilot_name"]], y=[row["duration_hours"]],
-                    marker_color="#f0efe8" if over else "#1e1e1e",
-                    marker_line_color="#2a2a2a", marker_line_width=0.5,
-                    showlegend=False
-                ))
-            fig.add_hline(y=13, line_dash="dot", line_color="#333", line_width=1,
-                          annotation_text="13 h limit", annotation_font_size=9,
-                          annotation_font_color="#333", annotation_position="top right")
-            fig.update_layout(**PL, height=260, bargap=0.4,
-                xaxis=dict(showgrid=False, tickfont=dict(size=9, color="#444"),
-                           linecolor="#1a1a1a", linewidth=0.5),
-                yaxis=dict(showgrid=True, gridcolor="#111", gridwidth=0.5,
-                           tickfont=dict(size=9, color="#444"), zeroline=False))
-            st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
-        else:
-            st.info("No duty records available.")
-
-    with col_r:
-        st.markdown('<div class="sec">Recent Violations</div>', unsafe_allow_html=True)
-        if violations:
-            for v in violations[:6]:
-                sev  = v.get("severity", "LOW")
-                bg   = {"HIGH": "#f0efe8", "MEDIUM": "#1a1a1a"}.get(sev, "transparent")
-                fg   = {"HIGH": "#0a0a0a", "MEDIUM": "#888"}.get(sev, "#333")
-                bord = "" if sev != "LOW" else "border:0.5px solid #222;"
-                name = pilot_map.get(v.get("pilot_id"), "Unknown")
-                st.markdown(f"""
-                <div style="padding:11px 0;border-bottom:0.5px solid #111;">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-                        <span style="font-size:10px;color:#c8c7c0;font-family:'DM Mono',monospace;">{name}</span>
-                        <span style="font-size:9px;background:{bg};color:{fg};padding:2px 8px;
-                                     letter-spacing:0.1em;font-family:'DM Mono',monospace;{bord}">{sev}</span>
-                    </div>
-                    <div style="font-size:9px;color:#333;font-family:'DM Mono',monospace;">{v.get('violation_type','—')}</div>
-                    <div style="font-size:10px;color:#555;margin-top:3px;font-family:'DM Mono',monospace;">{v.get('description','—')}</div>
+    if violations:
+        for v in violations[:8]:
+            sev  = v.get("severity", "LOW")
+            bg   = {"HIGH": "#f0efe8", "MEDIUM": "#1a1a1a"}.get(sev, "transparent")
+            fg   = {"HIGH": "#0a0a0a", "MEDIUM": "#888"}.get(sev, "#333")
+            bord = "" if sev != "LOW" else "border:0.5px solid #222;"
+            name = pilot_map.get(v.get("pilot_id"), "Unknown")
+            st.markdown(f"""
+            <div style="padding:11px 0;border-bottom:0.5px solid #111;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                    <span style="font-size:10px;color:#c8c7c0;font-family:'DM Mono',monospace;">{name}</span>
+                    <span style="font-size:9px;background:{bg};color:{fg};padding:2px 8px;
+                                 letter-spacing:0.1em;font-family:'DM Mono',monospace;{bord}">{sev}</span>
                 </div>
-                """, unsafe_allow_html=True)
-        else:
-            st.info("No violations recorded.")
+                <div style="font-size:9px;color:#333;font-family:'DM Mono',monospace;">{v.get('violation_type','—')}</div>
+                <div style="font-size:10px;color:#555;margin-top:3px;font-family:'DM Mono',monospace;">{v.get('description','—')}</div>
+            </div>
+            """, unsafe_allow_html=True)
+    else:
+        st.info("No violations recorded.")
 
-
-# ════════════════════════════════════════════════════════════════════
-# TAB 2 — PILOTS
-# ════════════════════════════════════════════════════════════════════
-with tab2:
-    st.markdown('<div class="sec">Pilot Registry</div>', unsafe_allow_html=True)
+    st.markdown("<div style='height:24px'></div>", unsafe_allow_html=True)
+    st.markdown('<div class="sec">Registered Pilots</div>', unsafe_allow_html=True)
     if pilots:
         st.dataframe(pd.DataFrame(pilots), use_container_width=True, hide_index=True)
     else:
@@ -300,9 +240,9 @@ with tab2:
 
 
 # ════════════════════════════════════════════════════════════════════
-# TAB 3 — DUTY RECORDS
+# TAB 2 — DUTY RECORDS
 # ════════════════════════════════════════════════════════════════════
-with tab3:
+with tab2:
     st.markdown('<div class="sec">Duty Period Records</div>', unsafe_allow_html=True)
     if duties:
         df_du = pd.DataFrame(duties)
@@ -311,31 +251,16 @@ with tab3:
         if "duration_hours" in df_du.columns:
             show.append("duration_hours")
         st.dataframe(df_du[show], use_container_width=True, hide_index=True)
-
-        if "duration_hours" in df_du.columns and df_du["duration_hours"].notna().any():
-            st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
-            st.markdown('<div class="sec">Duration Distribution</div>', unsafe_allow_html=True)
-            df_du["duration_hours"] = pd.to_numeric(df_du["duration_hours"], errors="coerce")
-            fig2 = px.histogram(df_du, x="duration_hours", nbins=12,
-                                color_discrete_sequence=["#f0efe8"])
-            fig2.add_vline(x=13, line_dash="dot", line_color="#333", line_width=1,
-                           annotation_text="13 h limit", annotation_font_size=9,
-                           annotation_font_color="#333")
-            fig2.update_layout(**PL, height=200, bargap=0.15,
-                xaxis=dict(title="Hours", showgrid=False, linecolor="#1a1a1a",
-                           tickfont=dict(size=9, color="#444")),
-                yaxis=dict(title="Count", showgrid=True, gridcolor="#111",
-                           gridwidth=0.5, tickfont=dict(size=9, color="#444")))
-            st.plotly_chart(fig2, use_container_width=True, config={"displayModeBar": False})
     else:
         st.info("No duty records found.")
 
 
 # ════════════════════════════════════════════════════════════════════
-# TAB 4 — VIOLATIONS
+# TAB 3 — VIOLATIONS
 # ════════════════════════════════════════════════════════════════════
-with tab4:
+with tab3:
     st.markdown('<div class="sec">Violation Log</div>', unsafe_allow_html=True)
+
     f1, f2 = st.columns(2)
     with f1:
         sev_filter = st.selectbox("Severity", ["ALL", "HIGH", "MEDIUM", "LOW"])
@@ -364,49 +289,20 @@ with tab4:
             if val == "LOW":    return "color:#333"
             return ""
 
-        st.dataframe(df_v[show_v].style.applymap(sev_style, subset=["severity"]),
-                     use_container_width=True, hide_index=True)
+        st.dataframe(
+            df_v[show_v].style.applymap(sev_style, subset=["severity"]),
+            use_container_width=True, hide_index=True
+        )
     else:
         st.info("No violations match the selected filters.")
 
-    st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
-    st.markdown('<div class="sec">Pilot Duty Timeline</div>', unsafe_allow_html=True)
-
-    if duties and pilots:
-        df_tl = pd.DataFrame(duties)
-        df_tl["pilot_name"] = df_tl["pilot_id"].map(pilot_map).fillna("Unknown")
-        df_tl["duty_start"] = pd.to_datetime(df_tl["duty_start"], errors="coerce")
-        df_tl["duty_end"]   = pd.to_datetime(df_tl["duty_end"],   errors="coerce")
-        df_tl = df_tl.dropna(subset=["duty_start","duty_end"])
-        if "duration_hours" not in df_tl.columns:
-            df_tl["duration_hours"] = ((df_tl["duty_end"] - df_tl["duty_start"])
-                                       .dt.total_seconds() / 3600).round(2)
-        df_tl["duration_hours"] = pd.to_numeric(df_tl["duration_hours"], errors="coerce").fillna(0)
-        if not df_tl.empty:
-            fig3 = px.timeline(df_tl, x_start="duty_start", x_end="duty_end",
-                               y="pilot_name", color="duration_hours",
-                               color_continuous_scale=[[0,"#111"],[0.6,"#555"],[1,"#f0efe8"]],
-                               range_color=[0,14],
-                               labels={"pilot_name":"Pilot","duration_hours":"Hours"})
-            fig3.update_yaxes(autorange="reversed")
-            fig3.update_layout(**PL, height=280,
-                xaxis=dict(showgrid=False, linecolor="#1a1a1a",
-                           tickfont=dict(size=9, color="#444")),
-                yaxis=dict(showgrid=False, tickfont=dict(size=9, color="#444")),
-                coloraxis_colorbar=dict(
-                    title=dict(text="h", font=dict(size=9, color="#444")),
-                    tickfont=dict(size=9, color="#444"),
-                    thickness=8, len=0.6))
-            st.plotly_chart(fig3, use_container_width=True, config={"displayModeBar": False})
-    else:
-        st.info("No duty data for timeline.")
-
 
 # ════════════════════════════════════════════════════════════════════
-# TAB 5 — AI ANALYSIS
+# TAB 4 — AI ANALYSIS
 # ════════════════════════════════════════════════════════════════════
-with tab5:
+with tab4:
     st.markdown('<div class="sec">Groq AI — Violation Analysis</div>', unsafe_allow_html=True)
+
     a1, a2 = st.columns([1, 2])
     with a1:
         vid = st.number_input("Violation ID", min_value=1, step=1)
@@ -427,7 +323,7 @@ with tab5:
                         </div>
                         <div>
                             <div style="font-size:9px;letter-spacing:0.12em;text-transform:uppercase;
-                                        color:#333;margin-bottom:4px;font-family:'DM Mono',monospace;">Violation Type</div>
+                                        color:#333;margin-bottom:4px;font-family:'DM Mono',monospace;">Violation</div>
                             <div style="font-size:12px;color:#f0efe8;font-family:'DM Mono',monospace;">
                                 {result['violation_type']}</div>
                         </div>
@@ -443,27 +339,22 @@ with tab5:
         else:
             st.markdown("""
             <div style="background:#0f0f0f;border:0.5px solid #1a1a1a;padding:24px;
-                        color:#333;font-size:11px;line-height:1.8;
-                        font-family:'DM Mono',monospace;">
+                        color:#333;font-size:11px;line-height:1.8;font-family:'DM Mono',monospace;">
                 Enter a Violation ID and click Run Analysis.
             </div>
             """, unsafe_allow_html=True)
 
 
 # ════════════════════════════════════════════════════════════════════
-# TAB 6 — ADD RECORD
+# TAB 5 — ADD RECORD
 # ════════════════════════════════════════════════════════════════════
-with tab6:
-
+with tab5:
     col_a, col_b = st.columns(2, gap="large")
 
-    # ── LEFT: ADD PILOT ───────────────────────────────────────────
     with col_a:
         st.markdown('<div class="sec">Register Pilot</div>', unsafe_allow_html=True)
-
-        pilot_name_input = st.text_input("Full Name",    placeholder="e.g. Rajesh Sharma")
-        emp_id_input     = st.text_input("Employee ID",  placeholder="e.g. AI-006")
-
+        pilot_name_input = st.text_input("Full Name",   placeholder="e.g. Rajesh Sharma")
+        emp_id_input     = st.text_input("Employee ID", placeholder="e.g. AI-006")
         if st.button("Register Pilot"):
             if not pilot_name_input.strip() or not emp_id_input.strip():
                 st.error("Both fields are required.")
@@ -472,19 +363,17 @@ with tab6:
                     "name": pilot_name_input.strip(),
                     "employee_id": emp_id_input.strip()
                 })
-                if data and data.get("id"):
-                    st.success(f"Pilot registered — {data['name']}  |  ID: {data['id']}")
+                if data is not None:
+                    st.success(f"Pilot registered — {data.get('name')}  |  ID: {data.get('id')}")
                 else:
                     st.error(f"Failed: {err}")
 
-    # ── RIGHT: ADD DUTY ───────────────────────────────────────────
     with col_b:
         st.markdown('<div class="sec">Log Duty Period</div>', unsafe_allow_html=True)
-
         if not pilots:
             st.warning("No pilots found. Register a pilot first.")
         else:
-            pilot_choices = {p["name"]: p["id"] for p in pilots}
+            pilot_choices  = {p["name"]: p["id"] for p in pilots}
             selected_pilot = st.selectbox("Pilot", list(pilot_choices.keys()))
 
             d1, d2 = st.columns(2)
@@ -499,18 +388,17 @@ with tab6:
             duty_end_dt   = datetime.combine(end_date,   end_time)
             duration      = (duty_end_dt - duty_start_dt).total_seconds() / 3600
 
-            # Duration preview
             over      = duration > 13
             dur_color = "#f0efe8" if over else "#555"
             warn      = "EXCEEDS 13H LIMIT" if over else ""
-            warn_html = f'<span style="font-size:9px;color:#f0efe8;letter-spacing:0.1em;">{warn}</span>' if over else ""
             st.markdown(
                 f'<div style="margin:12px 0;padding:10px 16px;border:0.5px solid #1a1a1a;'
                 f'background:#0a0a0a;display:flex;align-items:baseline;gap:12px;">'
                 f'<span style="font-size:9px;color:#333;letter-spacing:0.12em;'
                 f'text-transform:uppercase;">Duration</span>'
                 f'<span style="font-size:22px;color:{dur_color};">{duration:.1f} h</span>'
-                f'{warn_html}</div>',
+                f'<span style="font-size:9px;color:#f0efe8;letter-spacing:0.1em;">{warn}</span>'
+                f'</div>',
                 unsafe_allow_html=True
             )
 
@@ -523,7 +411,7 @@ with tab6:
                         "duty_start": duty_start_dt.isoformat(),
                         "duty_end":   duty_end_dt.isoformat()
                     })
-                    if data and data.get("id"):
+                    if data is not None:
                         hrs = data.get("duration_hours") or round(duration, 2)
                         st.success(f"Duty logged — {selected_pilot}  |  {hrs} h")
                         if over:
